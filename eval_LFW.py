@@ -91,7 +91,7 @@ if __name__ == "__main__":
     log_interval = 1
 
     test_loader = torch.utils.data.DataLoader(
-        LFWDataset(dir="D:/Study/Collection/Arcface/arcface-ptorch-master/lfw/",pairs_path="model_data/lfw_pair.txt",image_size=input_shape), batch_size=batch_size, shuffle=False)
+        LFWDataset(dir="lfw/",pairs_path="model_data/lfw_pair.txt",image_size=input_shape), batch_size=batch_size, shuffle=False)
 
     model = Facenet(backbone=backbone, mode="predict")
 
