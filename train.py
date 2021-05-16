@@ -230,8 +230,8 @@ if __name__ == "__main__":
         gen_val         = DataLoader(val_dataset, batch_size=Batch_size, num_workers=4, pin_memory=True,
                                 drop_last=True, collate_fn=dataset_collate)
 
-        epoch_size      = 5
-        val_epoch_size  = 5
+        epoch_size      = max(1, num_train//Batch_size)
+        val_epoch_size  = max(1, num_val//Batch_size)
 
         for param in model.backbone.parameters():
             param.requires_grad = False
