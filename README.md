@@ -13,8 +13,8 @@
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | accuracy |
 | :-----: | :-----: | :------: | :------: | :------: |
-| CASIA-WebFace | [facenet_mobilenet.pth](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_mobilenet.pth) | LFW | 160x160 | 98.23% |
-| CASIA-WebFace | [facenet_inception_resnetv1.pth](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_inception_resnetv1.pth) | LFW | 160x160 | 98.78% |
+| CASIA-WebFace | [facenet_mobilenet.pth](https://github.com/bubbliiiing/facenet-pytorch/releases/download/v1.0/facenet_mobilenet.pth) | LFW | 160x160 | 98.23% |
+| CASIA-WebFace | [facenet_inception_resnetv1.pth](https://github.com/bubbliiiing/facenet-pytorch/releases/download/v1.0/facenet_inception_resnetv1.pth) | LFW | 160x160 | 98.78% |
 
 ## 所需环境
 pytorch==1.2.0
