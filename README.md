@@ -1,4 +1,4 @@
-## Facenet：人脸识别模型在Keras当中的实现
+## Facenet：人脸识别模型在Pytorch当中的实现
 ---
 
 ## 目录
@@ -13,28 +13,27 @@
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | accuracy |
 | :-----: | :-----: | :------: | :------: | :------: |
-| CASIA-WebFace | [facenet_mobilenet.h5](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_mobilenet.h5) | LFW | 160x160 | 97.86% |
-| CASIA-WebFace | [facenet_inception_resnetv1.h5](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_inception_resnetv1.h5) | LFW | 160x160 | 99.02% |
+| CASIA-WebFace | [facenet_mobilenet.pth](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_mobilenet.pth) | LFW | 160x160 | 98.23% |
+| CASIA-WebFace | [facenet_inception_resnetv1.pth](https://github.com/bubbliiiing/facenet-keras/releases/download/v1.0/facenet_inception_resnetv1.pth) | LFW | 160x160 | 98.78% |
 
 ## 所需环境
-tensorflow-gpu==1.13.1  
-keras==2.1.5  
+pytorch==1.2.0
 
 ## 文件下载
-已经训练好的facenet_mobilenet.h5和facenet_inception_resnetv1.h5可以在百度网盘下载。    
-链接: https://pan.baidu.com/s/1gWN9_wl4gjKzsiOn0VOm9A 提取码: tj5r     
+已经训练好的facenet_mobilenet.pth和facenet_inception_resnetv1.pth可以在百度网盘下载。    
+链接: https://pan.baidu.com/s/1slUYdpskFpUX62WpJeLByA 提取码: fe1w    
 
 训练用的CASIA-WebFaces数据集以及评估用的LFW数据集可以在百度网盘下载。    
 链接: https://pan.baidu.com/s/1fhiHlylAFVoR43yfDbi4Ag 提取码: gkch    
 
 ## 预测步骤
 ### a、使用预训练权重
-1. 下载完库后解压，在model_data文件夹里已经有了facenet_mobilenet.h5，可直接运行predict.py输入：
+1. 下载完库后解压，在model_data文件夹里已经有了facenet_mobilenet.pth，可直接运行predict.py输入：
 ```python
 img\1_001.jpg
 img\1_002.jpg
 ```  
-2. 也可以在百度网盘下载facenet_inception_resnetv1.h5，放入model_data，修改facenet.py文件的model_path后，输入：
+2. 也可以在百度网盘下载facenet_inception_resnetv1.pth，放入model_data，修改facenet.py文件的model_path后，输入：
 ```python
 img\1_001.jpg
 img\1_002.jpg
@@ -44,9 +43,10 @@ img\1_002.jpg
 2. 在facenet.py文件里面，在如下部分修改model_path和backbone使其对应训练好的文件；**model_path对应logs文件夹下面的权值文件，backbone对应主干特征提取网络**。  
 ```python
 _defaults = {
-    "model_path"    : "model_data/facenet_mobilenet.h5",
-    "input_shape"   : [160,160,3],
-    "backbone"      : "mobilenet"
+    "model_path"    : "model_data/facenet_mobilenet.pth",
+    "input_shape"   : (160, 160, 3),
+    "backbone"      : "mobilenet",
+    "cuda"          : True,
 }
 ```
 3. 运行predict.py，输入  
