@@ -21,7 +21,7 @@ pytorch==1.2.0
 
 ## 文件下载
 已经训练好的facenet_mobilenet.pth和facenet_inception_resnetv1.pth可以在百度网盘下载。    
-链接: https://pan.baidu.com/s/1slUYdpskFpUX62WpJeLByA 提取码: fe1w    
+链接: https://pan.baidu.com/s/1ER7Ok6mTGh_1R36YTlErbw 提取码: rm69    
 
 训练用的CASIA-WebFaces数据集以及评估用的LFW数据集可以在百度网盘下载。    
 链接: https://pan.baidu.com/s/1fhiHlylAFVoR43yfDbi4Ag 提取码: gkch    
