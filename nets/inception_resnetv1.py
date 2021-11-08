@@ -206,7 +206,6 @@ class InceptionResnetV1(nn.Module):
         self.block8 = Block8(noReLU=True)
         self.avgpool_1a = nn.AdaptiveAvgPool2d(1)
 
-
     def forward(self, x):
         x = self.conv2d_1a(x)
         x = self.conv2d_2a(x)

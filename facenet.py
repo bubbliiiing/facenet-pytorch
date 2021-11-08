@@ -12,9 +12,24 @@ from nets.facenet import Facenet as facenet
 #--------------------------------------------#
 class Facenet(object):
     _defaults = {
+        #--------------------------------------------------------------------------#
+        #   使用自己训练好的模型进行预测要修改model_path，指向logs文件夹下的权值文件
+        #   训练好后logs文件夹下存在多个权值文件，选择验证集损失较低的即可。
+        #   验证集损失较低不代表准确度较高，仅代表该权值在验证集上泛化性能较好。
+        #--------------------------------------------------------------------------#
         "model_path"    : "model_data/facenet_mobilenet.pth",
-        "input_shape"   : (160, 160, 3),
+        #--------------------------------------------------------------------------#
+        #   输入图片的大小。
+        #--------------------------------------------------------------------------#
+        "input_shape"   : [160, 160, 3],
+        #--------------------------------------------------------------------------#
+        #   所使用到的主干特征提取网络
+        #--------------------------------------------------------------------------#
         "backbone"      : "mobilenet",
+        #--------------------------------------#
+        #   是否使用Cuda
+        #   没有GPU可以设置成False
+        #--------------------------------------#
         "cuda"          : True,
     }
 
@@ -30,37 +45,43 @@ class Facenet(object):
     #---------------------------------------------------#
     def __init__(self, **kwargs):
         self.__dict__.update(self._defaults)
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+
         self.generate()
         
     def generate(self):
-        # 载入模型
+        #---------------------------------------------------#
+        #   载入模型与权值
+        #---------------------------------------------------#
         print('Loading weights into state dict...')
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = facenet(backbone=self.backbone, mode="predict")
+        model   = facenet(backbone=self.backbone, mode="predict")
+        device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model.load_state_dict(torch.load(self.model_path, map_location=device), strict=False)
         self.net = model.eval()
+        print('{} model loaded.'.format(self.model_path))
 
         if self.cuda:
             self.net = torch.nn.DataParallel(self.net)
             cudnn.benchmark = True
             self.net = self.net.cuda()
-            
-        print('{} model loaded.'.format(self.model_path))
     
     def letterbox_image(self, image, size):
-        image = image.convert("RGB")
-        iw, ih = image.size
-        w, h = size
-        scale = min(w/iw, h/ih)
-        nw = int(iw*scale)
-        nh = int(ih*scale)
+        if self.input_shape[-1] == 1:
+            image = image.convert("RGB")
+        iw, ih  = image.size
+        w, h    = size
+        scale   = min(w/iw, h/ih)
+        nw      = int(iw*scale)
+        nh      = int(ih*scale)
 
-        image = image.resize((nw,nh), Image.BICUBIC)
+        image   = image.resize((nw,nh), Image.BICUBIC)
         new_image = Image.new('RGB', size, (128,128,128))
         new_image.paste(image, ((w-nw)//2, (h-nh)//2))
-        if self.input_shape[-1]==1:
+        if self.input_shape[-1] == 1:
             new_image = new_image.convert("L")
         return new_image
+        
     #---------------------------------------------------#
     #   检测图片
     #---------------------------------------------------#
@@ -72,8 +93,8 @@ class Facenet(object):
             image_1 = self.letterbox_image(image_1, [self.input_shape[1], self.input_shape[0]])
             image_2 = self.letterbox_image(image_2, [self.input_shape[1], self.input_shape[0]])
             
-            photo_1 = torch.from_numpy(np.expand_dims(np.transpose(np.asarray(image_1).astype(np.float64)/255,(2,0,1)),0)).type(torch.FloatTensor)
-            photo_2 = torch.from_numpy(np.expand_dims(np.transpose(np.asarray(image_2).astype(np.float64)/255,(2,0,1)),0)).type(torch.FloatTensor)
+            photo_1 = torch.from_numpy(np.expand_dims(np.transpose(np.array(image_1, np.float32) / 255, (2, 0, 1)), 0))
+            photo_2 = torch.from_numpy(np.expand_dims(np.transpose(np.array(image_2, np.float32) / 255, (2, 0, 1)), 0))
             
             if self.cuda:
                 photo_1 = photo_1.cuda()
@@ -88,7 +109,7 @@ class Facenet(object):
             #---------------------------------------------------#
             #   计算二者之间的距离
             #---------------------------------------------------#
-            l1 = np.linalg.norm(output1-output2, axis=1)
+            l1 = np.linalg.norm(output1 - output2, axis=1)
         
         plt.subplot(1, 2, 1)
         plt.imshow(np.array(image_1))

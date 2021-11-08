@@ -1,13 +1,21 @@
+import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torchvision.models.utils import load_state_dict_from_url
 
 from nets.inception_resnetv1 import InceptionResnetV1
 from nets.mobilenet import MobileNetV1
 
+
 class mobilenet(nn.Module):
-    def __init__(self):
+    def __init__(self, pretrained):
         super(mobilenet, self).__init__()
         self.model = MobileNetV1()
+        if pretrained:
+            state_dict = load_state_dict_from_url("model_data/backbone_weights_of_mobilenetv1.pth", model_dir="model_data",
+                                                progress=True)
+            self.model.load_state_dict(state_dict)
+
         del self.model.fc
         del self.model.avg
 
@@ -18,9 +26,13 @@ class mobilenet(nn.Module):
         return x
 
 class inception_resnet(nn.Module):
-    def __init__(self):
+    def __init__(self, pretrained):
         super(inception_resnet, self).__init__()
         self.model = InceptionResnetV1()
+        if pretrained:
+            state_dict = load_state_dict_from_url("model_data/backbone_weights_of_inception_resnetv1.pth", model_dir="model_data",
+                                                progress=True)
+            self.model.load_state_dict(state_dict)
 
     def forward(self, x):
         x = self.model.conv2d_1a(x)
@@ -39,20 +51,20 @@ class inception_resnet(nn.Module):
         return x
         
 class Facenet(nn.Module):
-    def __init__(self, backbone="mobilenet", dropout_keep_prob=0.5, embedding_size=128, num_classes=None, mode="train"):
+    def __init__(self, backbone="mobilenet", dropout_keep_prob=0.5, embedding_size=128, num_classes=None, mode="train", pretrained=False):
         super(Facenet, self).__init__()
         if backbone == "mobilenet":
-            self.backbone = mobilenet()
+            self.backbone = mobilenet(pretrained)
             flat_shape = 1024
         elif backbone == "inception_resnetv1":
-            self.backbone = inception_resnet()
+            self.backbone = inception_resnet(pretrained)
             flat_shape = 1792
         else:
             raise ValueError('Unsupported backbone - `{}`, Use mobilenet, inception_resnetv1.'.format(backbone))
-        self.avg = nn.AdaptiveAvgPool2d((1,1))
-        self.Dropout = nn.Dropout(1 - dropout_keep_prob)
+        self.avg        = nn.AdaptiveAvgPool2d((1,1))
+        self.Dropout    = nn.Dropout(1 - dropout_keep_prob)
         self.Bottleneck = nn.Linear(flat_shape, embedding_size,bias=False)
-        self.last_bn = nn.BatchNorm1d(embedding_size, eps=0.001, momentum=0.1, affine=True)
+        self.last_bn    = nn.BatchNorm1d(embedding_size, eps=0.001, momentum=0.1, affine=True)
         if mode == "train":
             self.classifier = nn.Linear(embedding_size, num_classes)
 
