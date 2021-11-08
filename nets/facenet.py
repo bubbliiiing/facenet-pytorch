@@ -12,7 +12,7 @@ class mobilenet(nn.Module):
         super(mobilenet, self).__init__()
         self.model = MobileNetV1()
         if pretrained:
-            state_dict = load_state_dict_from_url("model_data/backbone_weights_of_mobilenetv1.pth", model_dir="model_data",
+            state_dict = load_state_dict_from_url("https://github.com/bubbliiiing/facenet-pytorch/releases/download/v1.0/backbone_weights_of_mobilenetv1.pth", model_dir="model_data",
                                                 progress=True)
             self.model.load_state_dict(state_dict)
 
@@ -30,7 +30,7 @@ class inception_resnet(nn.Module):
         super(inception_resnet, self).__init__()
         self.model = InceptionResnetV1()
         if pretrained:
-            state_dict = load_state_dict_from_url("model_data/backbone_weights_of_inception_resnetv1.pth", model_dir="model_data",
+            state_dict = load_state_dict_from_url("https://github.com/bubbliiiing/facenet-pytorch/releases/download/v1.0/backbone_weights_of_inception_resnetv1.pth", model_dir="model_data",
                                                 progress=True)
             self.model.load_state_dict(state_dict)
 
