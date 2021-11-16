@@ -153,6 +153,12 @@ if __name__ == "__main__":
         Batch_size      = 64
         Init_Epoch      = 0
         Interval_Epoch  = 50
+
+        epoch_step      = num_train // Batch_size
+        epoch_step_val  = num_val // Batch_size
+
+        if epoch_step == 0 or epoch_step_val == 0:
+            raise ValueError("数据集过小，无法进行训练，请扩充数据集。")
         
         optimizer       = optim.Adam(model_train.parameters(), lr)
         lr_scheduler    = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.94)
@@ -164,12 +170,6 @@ if __name__ == "__main__":
                                 drop_last=True, collate_fn=dataset_collate)
         gen_val         = DataLoader(val_dataset, batch_size=Batch_size, num_workers=num_workers, pin_memory=True,
                                 drop_last=True, collate_fn=dataset_collate)
-
-        epoch_step      = num_train // Batch_size
-        epoch_step_val  = num_val // Batch_size
-
-        if epoch_step == 0 or epoch_step_val == 0:
-            raise ValueError("数据集过小，无法进行训练，请扩充数据集。")
 
         if Freeze_Train:
             for param in model.backbone.parameters():
@@ -190,6 +190,12 @@ if __name__ == "__main__":
         Interval_Epoch  = 50
         Epoch           = 100
 
+        epoch_step      = num_train // Batch_size
+        epoch_step_val  = num_val // Batch_size
+
+        if epoch_step == 0 or epoch_step_val == 0:
+            raise ValueError("数据集过小，无法进行训练，请扩充数据集。")
+
         optimizer       = optim.Adam(model_train.parameters(), lr)
         lr_scheduler    = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.94)
 
@@ -200,9 +206,6 @@ if __name__ == "__main__":
                                 drop_last=True, collate_fn=dataset_collate)
         gen_val         = DataLoader(val_dataset, batch_size=Batch_size, num_workers=num_workers, pin_memory=True,
                                 drop_last=True, collate_fn=dataset_collate)
-
-        epoch_step      = num_train // Batch_size
-        epoch_step_val  = num_val // Batch_size
 
         if Freeze_Train:
             for param in model.backbone.parameters():
