@@ -114,7 +114,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
         _, _, accuracy, _, _, _, _ = evaluate(distances,labels)
         print('LFW_Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
 
-    loss_history.append_loss(np.mean(total_accuracy), (total_triple_loss + total_CE_loss) / epoch_step, (val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
+    loss_history.append_loss(total_accuracy / epoch_step, (total_triple_loss + total_CE_loss) / epoch_step, (val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
     
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.4f' % ((total_triple_loss + total_CE_loss) / epoch_step))
