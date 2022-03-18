@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-from PIL import Image
 
 from nets.facenet import Facenet as facenet
+from utils.utils import preprocess_input, resize_image
+
 
 #--------------------------------------------#
 #   使用自己训练好的模型预测需要修改2个参数
@@ -26,11 +27,15 @@ class Facenet(object):
         #   所使用到的主干特征提取网络
         #--------------------------------------------------------------------------#
         "backbone"      : "mobilenet",
-        #--------------------------------------#
+        #-------------------------------------------#
+        #   是否进行不失真的resize
+        #-------------------------------------------#
+        "letterbox_image"   : True,
+        #-------------------------------------------#
         #   是否使用Cuda
         #   没有GPU可以设置成False
-        #--------------------------------------#
-        "cuda"          : True,
+        #-------------------------------------------#
+        "cuda"              : True,
     }
 
     @classmethod
@@ -55,10 +60,9 @@ class Facenet(object):
         #   载入模型与权值
         #---------------------------------------------------#
         print('Loading weights into state dict...')
-        model   = facenet(backbone=self.backbone, mode="predict")
-        device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model.load_state_dict(torch.load(self.model_path, map_location=device), strict=False)
-        self.net = model.eval()
+        device      = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.net    = facenet(backbone=self.backbone, mode="predict").eval()
+        self.net.load_state_dict(torch.load(self.model_path, map_location=device), strict=False)
         print('{} model loaded.'.format(self.model_path))
 
         if self.cuda:
@@ -66,22 +70,6 @@ class Facenet(object):
             cudnn.benchmark = True
             self.net = self.net.cuda()
     
-    def letterbox_image(self, image, size):
-        if self.input_shape[-1] == 1:
-            image = image.convert("RGB")
-        iw, ih  = image.size
-        w, h    = size
-        scale   = min(w/iw, h/ih)
-        nw      = int(iw*scale)
-        nh      = int(ih*scale)
-
-        image   = image.resize((nw,nh), Image.BICUBIC)
-        new_image = Image.new('RGB', size, (128,128,128))
-        new_image.paste(image, ((w-nw)//2, (h-nh)//2))
-        if self.input_shape[-1] == 1:
-            new_image = new_image.convert("L")
-        return new_image
-        
     #---------------------------------------------------#
     #   检测图片
     #---------------------------------------------------#
@@ -90,11 +78,11 @@ class Facenet(object):
         #   图片预处理，归一化
         #---------------------------------------------------#
         with torch.no_grad():
-            image_1 = self.letterbox_image(image_1, [self.input_shape[1], self.input_shape[0]])
-            image_2 = self.letterbox_image(image_2, [self.input_shape[1], self.input_shape[0]])
+            image_1 = resize_image(image_1, [self.input_shape[1], self.input_shape[0]], letterbox_image=self.letterbox_image)
+            image_2 = resize_image(image_2, [self.input_shape[1], self.input_shape[0]], letterbox_image=self.letterbox_image)
             
-            photo_1 = torch.from_numpy(np.expand_dims(np.transpose(np.array(image_1, np.float32) / 255, (2, 0, 1)), 0))
-            photo_2 = torch.from_numpy(np.expand_dims(np.transpose(np.array(image_2, np.float32) / 255, (2, 0, 1)), 0))
+            photo_1 = torch.from_numpy(np.expand_dims(np.transpose(preprocess_input(np.array(image_1, np.float32)), (2, 0, 1)), 0))
+            photo_2 = torch.from_numpy(np.expand_dims(np.transpose(preprocess_input(np.array(image_2, np.float32)), (2, 0, 1)), 0))
             
             if self.cuda:
                 photo_1 = photo_1.cuda()

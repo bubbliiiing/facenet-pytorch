@@ -1,7 +1,8 @@
 import numpy as np
+import torch
 from scipy import interpolate
 from sklearn.model_selection import KFold
-
+from tqdm import tqdm
 
 def evaluate(distances, labels, nrof_folds=10):
     # Calculate evaluation metrics
@@ -40,7 +41,6 @@ def calculate_roc(thresholds, distances, labels, nrof_folds=10):
         fpr = np.mean(fprs,0)
     return tpr, fpr, accuracy, thresholds[best_threshold_index]
 
-
 def calculate_accuracy(threshold, dist, actual_issame):
     predict_issame = np.less(dist, threshold)
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
@@ -64,7 +64,6 @@ def calculate_val(thresholds, distances, labels, far_target=1e-3, nrof_folds=10)
     indices = np.arange(nrof_pairs)
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-
         # Find the threshold that gives FAR = far_target
         far_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
@@ -95,3 +94,64 @@ def calculate_val_far(threshold, dist, actual_issame):
     val = float(true_accept) / float(n_same)
     far = float(false_accept) / float(n_diff)
     return val, far
+
+def test(test_loader, model, png_save_path, log_interval, batch_size, cuda):
+    labels, distances = [], []
+    pbar = tqdm(enumerate(test_loader))
+    for batch_idx, (data_a, data_p, label) in pbar:
+        with torch.no_grad():
+            #--------------------------------------#
+            #   加载数据，设置成cuda
+            #--------------------------------------#
+            data_a, data_p      = data_a.type(torch.FloatTensor), data_p.type(torch.FloatTensor)
+            if cuda:
+                data_a, data_p  = data_a.cuda(), data_p.cuda()
+            #--------------------------------------#
+            #   传入模型预测，获得预测结果
+            #   获得预测结果的距离
+            #--------------------------------------#
+            out_a, out_p        = model(data_a), model(data_p)
+            dists               = torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
+
+        #--------------------------------------#
+        #   将结果添加进列表中
+        #--------------------------------------#
+        distances.append(dists.data.cpu().numpy())
+        labels.append(label.data.cpu().numpy())
+        
+        #--------------------------------------#
+        #   打印
+        #--------------------------------------#
+        if batch_idx % log_interval == 0:
+            pbar.set_description('Test Epoch: [{}/{} ({:.0f}%)]'.format(
+                batch_idx * batch_size, len(test_loader.dataset),
+                100. * batch_idx / len(test_loader)))
+
+    #--------------------------------------#
+    #   转换成numpy
+    #--------------------------------------#
+    labels      = np.array([sublabel for label in labels for sublabel in label])
+    distances   = np.array([subdist for dist in distances for subdist in dist])
+    
+    tpr, fpr, accuracy, val, val_std, far, best_thresholds = evaluate(distances,labels)
+    print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
+    print('Best_thresholds: %2.5f' % best_thresholds)
+    print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
+    plot_roc(fpr, tpr, figure_name = png_save_path)
+
+def plot_roc(fpr, tpr, figure_name = "roc.png"):
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import auc, roc_curve
+    roc_auc = auc(fpr, tpr)
+    fig = plt.figure()
+    lw = 2
+    plt.plot(fpr, tpr, color='darkorange',
+             lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver operating characteristic')
+    plt.legend(loc="lower right")
+    fig.savefig(figure_name, dpi=fig.dpi)

@@ -4,7 +4,11 @@
 import os
 
 if __name__ == "__main__":
-    datasets_path   = "datasets/"
+    #---------------------#
+    #   训练集所在的路径
+    #---------------------#
+    datasets_path   = "datasets"
+
     types_name      = os.listdir(datasets_path)
     types_name      = sorted(types_name)
 

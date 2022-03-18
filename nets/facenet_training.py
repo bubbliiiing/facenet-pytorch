@@ -1,9 +1,10 @@
-import os
+
+
+import math
+from functools import partial
 
 import numpy as np
-import scipy.signal
 import torch
-from matplotlib import pyplot as plt
 
 
 def triplet_loss(alpha = 0.2):
@@ -16,8 +17,8 @@ def triplet_loss(alpha = 0.2):
         keep_all = (neg_dist - pos_dist < alpha).cpu().numpy().flatten()
         hard_triplets = np.where(keep_all == 1)
 
-        pos_dist = pos_dist[hard_triplets].cuda()
-        neg_dist = neg_dist[hard_triplets].cuda()
+        pos_dist = pos_dist[hard_triplets]
+        neg_dist = neg_dist[hard_triplets]
 
         basic_loss = pos_dist - neg_dist + alpha
         loss = torch.sum(basic_loss)/torch.max(torch.tensor(1),torch.tensor(len(hard_triplets[0])))
@@ -43,81 +44,46 @@ def weights_init(net, init_type='normal', init_gain=0.02):
             torch.nn.init.constant_(m.bias.data, 0.0)
     print('initialize network with %s type' % init_type)
     net.apply(init_func)
-    
-class LossHistory():
-    def __init__(self, log_dir):
-        import datetime
-        curr_time = datetime.datetime.now()
-        time_str = datetime.datetime.strftime(curr_time,'%Y_%m_%d_%H_%M_%S')
-        self.log_dir    = log_dir
-        self.time_str   = time_str
-        self.save_path  = os.path.join(self.log_dir, "loss_" + str(self.time_str))
-        self.acc        = []
-        self.losses     = []
-        self.val_loss   = []
-        
-        os.makedirs(self.save_path)
 
-    def append_loss(self, acc, loss, val_loss):
-        self.acc.append(acc)
-        self.losses.append(loss)
-        self.val_loss.append(val_loss)
-        with open(os.path.join(self.save_path, "epoch_acc_" + str(self.time_str) + ".txt"), 'a') as f:
-            f.write(str(acc))
-            f.write("\n")
-        with open(os.path.join(self.save_path, "epoch_loss_" + str(self.time_str) + ".txt"), 'a') as f:
-            f.write(str(loss))
-            f.write("\n")
-        with open(os.path.join(self.save_path, "epoch_val_loss_" + str(self.time_str) + ".txt"), 'a') as f:
-            f.write(str(val_loss))
-            f.write("\n")
-        self.loss_plot()
+def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio = 0.1, warmup_lr_ratio = 0.1, no_aug_iter_ratio = 0.3, step_num = 10):
+    def yolox_warm_cos_lr(lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter, iters):
+        if iters <= warmup_total_iters:
+            # lr = (lr - warmup_lr_start) * iters / float(warmup_total_iters) + warmup_lr_start
+            lr = (lr - warmup_lr_start) * pow(iters / float(warmup_total_iters), 2
+            ) + warmup_lr_start
+        elif iters >= total_iters - no_aug_iter:
+            lr = min_lr
+        else:
+            lr = min_lr + 0.5 * (lr - min_lr) * (
+                1.0
+                + math.cos(
+                    math.pi
+                    * (iters - warmup_total_iters)
+                    / (total_iters - warmup_total_iters - no_aug_iter)
+                )
+            )
+        return lr
 
-    def loss_plot(self):
-        iters = range(len(self.losses))
+    def step_lr(lr, decay_rate, step_size, iters):
+        if step_size < 1:
+            raise ValueError("step_size must above 1.")
+        n       = iters // step_size
+        out_lr  = lr * decay_rate ** n
+        return out_lr
 
-        plt.figure()
-        plt.plot(iters, self.losses, 'red', linewidth = 2, label='train loss')
-        plt.plot(iters, self.val_loss, 'coral', linewidth = 2, label='val loss')
-        try:
-            if len(self.losses) < 25:
-                num = 5
-            else:
-                num = 15
-            
-            plt.plot(iters, scipy.signal.savgol_filter(self.losses, num, 3), 'green', linestyle = '--', linewidth = 2, label='smooth train loss')
-            plt.plot(iters, scipy.signal.savgol_filter(self.val_loss, num, 3), '#8B4513', linestyle = '--', linewidth = 2, label='smooth val loss')
-        except:
-            pass
+    if lr_decay_type == "cos":
+        warmup_total_iters  = min(max(warmup_iters_ratio * total_iters, 1), 3)
+        warmup_lr_start     = max(warmup_lr_ratio * lr, 1e-6)
+        no_aug_iter         = min(max(no_aug_iter_ratio * total_iters, 1), 15)
+        func = partial(yolox_warm_cos_lr ,lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter)
+    else:
+        decay_rate  = (min_lr / lr) ** (1 / (step_num - 1))
+        step_size   = total_iters / step_num
+        func = partial(step_lr, lr, decay_rate, step_size)
 
-        plt.grid(True)
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.legend(loc="upper right")
+    return func
 
-        plt.savefig(os.path.join(self.save_path, "epoch_loss_" + str(self.time_str) + ".png"))
-
-        plt.cla()
-        plt.close("all")
-
-        plt.figure()
-        plt.plot(iters, self.acc, 'red', linewidth = 2, label='lfw acc')
-        try:
-            if len(self.losses) < 25:
-                num = 5
-            else:
-                num = 15
-            
-            plt.plot(iters, scipy.signal.savgol_filter(self.acc, num, 3), 'green', linestyle = '--', linewidth = 2, label='smooth lfw acc')
-        except:
-            pass
-
-        plt.grid(True)
-        plt.xlabel('Epoch')
-        plt.ylabel('Lfw Acc')
-        plt.legend(loc="upper right")
-
-        plt.savefig(os.path.join(self.save_path, "epoch_acc_" + str(self.time_str) + ".png"))
-
-        plt.cla()
-        plt.close("all")
+def set_optimizer_lr(optimizer, lr_scheduler_func, epoch):
+    lr = lr_scheduler_func(epoch)
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr

@@ -11,7 +11,7 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, test_loader, Batch_size, lfw_eval_flag):
+def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, test_loader, Batch_size, lfw_eval_flag, save_period):
     total_triple_loss   = 0
     total_CE_loss       = 0
     total_accuracy      = 0
@@ -36,8 +36,8 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                     labels  = torch.from_numpy(labels).long()
 
             optimizer.zero_grad()
-            before_normalize, outputs1  = model.forward_feature(images)
-            outputs2                    = model.forward_classifier(before_normalize)
+            outputs1    = model(images)
+            outputs2    = model(outputs1, "head")
             
             _triplet_loss   = loss(outputs1, Batch_size)
             _CE_loss        = nn.NLLLoss()(F.log_softmax(outputs2, dim = -1), labels)
@@ -76,13 +76,13 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                     labels  = torch.from_numpy(labels).long()
 
                 optimizer.zero_grad()
-                before_normalize, outputs1  = model.forward_feature(images)
-                outputs2                    = model.forward_classifier(before_normalize)
+                outputs1    = model(images)
+                outputs2    = model(outputs1, "head")
                 
                 _triplet_loss   = loss(outputs1, Batch_size)
-                _CE_loss        = nn.NLLLoss()(F.log_softmax(outputs2,dim=-1),labels)
+                _CE_loss        = nn.NLLLoss()(F.log_softmax(outputs2, dim = -1), labels)
                 _loss           = _triplet_loss + _CE_loss
-
+                
                 accuracy        = torch.mean((torch.argmax(F.softmax(outputs2, dim=-1), dim=-1) == labels).type(torch.FloatTensor))
                 
                 val_total_triple_loss   += _triplet_loss.item()
@@ -104,7 +104,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                 data_a, data_p = data_a.type(torch.FloatTensor), data_p.type(torch.FloatTensor)
                 if cuda:
                     data_a, data_p = data_a.cuda(), data_p.cuda()
-                out_a, out_p = model(data_a), model(data_p)
+                out_a, out_p = model_train(data_a), model_train(data_p)
                 dists = torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
             distances.append(dists.data.cpu().numpy())
             labels.append(label.data.cpu().numpy())
@@ -114,12 +114,12 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
         _, _, accuracy, _, _, _, _ = evaluate(distances,labels)
         print('LFW_Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
 
-    loss_history.append_loss(total_accuracy / epoch_step, (total_triple_loss + total_CE_loss) / epoch_step, (val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
+    loss_history.append_loss(epoch, np.mean(accuracy) if lfw_eval_flag else total_accuracy / epoch_step, \
+        (total_triple_loss + total_CE_loss) / epoch_step, (val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
     
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.4f' % ((total_triple_loss + total_CE_loss) / epoch_step))
-    torch.save(model.state_dict(), 'logs/Epoch%d-Total_Loss%.4f.pth-Val_Loss%.4f.pth'%((epoch+1),
-                                                    (total_triple_loss + total_CE_loss) / epoch_step,
-                                                    (val_total_triple_loss + val_total_CE_loss) / epoch_step_val))
-    
-    return (val_total_triple_loss + val_total_CE_loss) / epoch_step_val
+    if (epoch + 1) % save_period == 0:
+        torch.save(model.state_dict(), 'logs/ep%03d-loss%.3f-val_loss%.3f.pth'%((epoch + 1),
+                                                        (total_triple_loss + total_CE_loss) / epoch_step,
+                                                        (val_total_triple_loss + val_total_CE_loss) / epoch_step_val))
