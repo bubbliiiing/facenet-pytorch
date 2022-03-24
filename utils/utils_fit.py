@@ -1,17 +1,16 @@
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from utils.utils import get_lr
 from utils.utils_metrics import evaluate
 
 
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
-
-def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, test_loader, Batch_size, lfw_eval_flag, save_period):
+def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, test_loader, Batch_size, lfw_eval_flag, save_period, save_dir):
     total_triple_loss   = 0
     total_CE_loss       = 0
     total_accuracy      = 0
@@ -36,8 +35,8 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                     labels  = torch.from_numpy(labels).long()
 
             optimizer.zero_grad()
-            outputs1    = model(images)
-            outputs2    = model(outputs1, "head")
+            before_normalize, outputs1  = model_train(images, "train_extractor")
+            outputs2                    = model_train(before_normalize, "train_head")
             
             _triplet_loss   = loss(outputs1, Batch_size)
             _CE_loss        = nn.NLLLoss()(F.log_softmax(outputs2, dim = -1), labels)
@@ -76,8 +75,8 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                     labels  = torch.from_numpy(labels).long()
 
                 optimizer.zero_grad()
-                outputs1    = model(images)
-                outputs2    = model(outputs1, "head")
+                before_normalize, outputs1  = model_train(images, "train_extractor")
+                outputs2                    = model_train(before_normalize, "train_head")
                 
                 _triplet_loss   = loss(outputs1, Batch_size)
                 _CE_loss        = nn.NLLLoss()(F.log_softmax(outputs2, dim = -1), labels)
@@ -119,7 +118,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
     
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.4f' % ((total_triple_loss + total_CE_loss) / epoch_step))
-    if (epoch + 1) % save_period == 0:
-        torch.save(model.state_dict(), 'logs/ep%03d-loss%.3f-val_loss%.3f.pth'%((epoch + 1),
-                                                        (total_triple_loss + total_CE_loss) / epoch_step,
-                                                        (val_total_triple_loss + val_total_CE_loss) / epoch_step_val))
+    if (epoch + 1) % save_period == 0 or epoch + 1 == Epoch:
+        torch.save(model.state_dict(), os.path.join(save_dir, 'ep%03d-loss%.3f-val_loss%.3f.pth'%((epoch + 1),
+                                                                (total_triple_loss + total_CE_loss) / epoch_step,
+                                                                (val_total_triple_loss + val_total_CE_loss) / epoch_step_val)))

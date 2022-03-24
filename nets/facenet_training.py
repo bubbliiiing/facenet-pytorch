@@ -21,7 +21,7 @@ def triplet_loss(alpha = 0.2):
         neg_dist = neg_dist[hard_triplets]
 
         basic_loss = pos_dist - neg_dist + alpha
-        loss = torch.sum(basic_loss)/torch.max(torch.tensor(1),torch.tensor(len(hard_triplets[0])))
+        loss = torch.sum(basic_loss) / torch.max(torch.tensor(1), torch.tensor(len(hard_triplets[0])))
         return loss
     return _triplet_loss
 

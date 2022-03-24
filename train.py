@@ -18,7 +18,7 @@ if __name__ == "__main__":
     #   是否使用Cuda
     #   没有GPU可以设置成False
     #-------------------------------#
-    Cuda            = False
+    Cuda            = True
     #--------------------------------------------------------#
     #   指向根目录下的cls_train.txt，读取人脸路径与标签
     #--------------------------------------------------------#
@@ -99,6 +99,10 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     save_period         = 1
     #------------------------------------------------------------------#
+    #   save_dir        权值与日志文件保存的文件夹
+    #------------------------------------------------------------------#
+    save_dir            = 'logs'
+    #------------------------------------------------------------------#
     #   用于设置是否使用多线程读取数据
     #   开启后会加快数据读取速度，但是会占用更多内存
     #   内存较小的电脑可以设置为2或者0  
@@ -107,7 +111,7 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     #   是否开启LFW评估
     #------------------------------------------------------------------#
-    lfw_eval_flag   = False
+    lfw_eval_flag   = True
     #------------------------------------------------------------------#
     #   LFW评估数据集的文件路径和对应的txt文件
     #------------------------------------------------------------------#
@@ -159,6 +163,8 @@ if __name__ == "__main__":
     num_train = len(lines) - num_val
 
     if True:
+        if batch_size % 3 != 0:
+            raise ValueError("Batch_size must be the multiple of 3.")
         #-------------------------------------------------------------------#
         #   判断当前batch_size与64的差别，自适应调整学习率
         #-------------------------------------------------------------------#
@@ -192,7 +198,7 @@ if __name__ == "__main__":
         #   构建数据集加载器。
         #---------------------------------------#
         train_dataset   = FacenetDataset(input_shape, lines[:num_train], num_classes, random = True)
-        val_dataset     = FacenetDataset(input_shape, lines[num_train:], num_classes, random = False,)
+        val_dataset     = FacenetDataset(input_shape, lines[num_train:], num_classes, random = False)
 
         gen             = DataLoader(train_dataset, shuffle=True, batch_size=batch_size//3, num_workers=num_workers, pin_memory=True,
                                 drop_last=True, collate_fn=dataset_collate)
@@ -201,5 +207,7 @@ if __name__ == "__main__":
 
         for epoch in range(Init_Epoch, Epoch):
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
-            fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, Cuda, LFW_loader, batch_size//3, lfw_eval_flag, save_period)
+            
+            fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, Cuda, LFW_loader, batch_size//3, lfw_eval_flag, save_period, save_dir)
 
+        loss_history.writer.close()

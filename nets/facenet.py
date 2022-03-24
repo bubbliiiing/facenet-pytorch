@@ -1,7 +1,6 @@
-import torch
 import torch.nn as nn
+from torch.hub import load_state_dict_from_url
 from torch.nn import functional as F
-from torchvision.models.utils import load_state_dict_from_url
 
 from nets.inception_resnetv1 import InceptionResnetV1
 from nets.mobilenet import MobileNetV1
@@ -77,11 +76,21 @@ class Facenet(nn.Module):
             x = self.Bottleneck(x)
             x = self.last_bn(x)
             x = F.normalize(x, p=2, dim=1)
-        elif mode == "head":
+            return x
+        elif mode == "train_extractor":
+            x = self.backbone(x)
+            x = self.avg(x)
+            x = x.view(x.size(0), -1)
+            x = self.Dropout(x)
+            x = self.Bottleneck(x)
+            before_normalize = self.last_bn(x)
+            x = F.normalize(before_normalize, p=2, dim=1)
+            return before_normalize, x
+        elif mode == "train_head":
             x = self.classifier(x)
+            return x
         else:
             raise ValueError('mode should in extractor, head')
-        return x
 
     def forward_feature(self, x):
         x = self.backbone(x)

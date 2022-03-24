@@ -2,13 +2,27 @@
 ---
 
 ## 目录
-1. [性能情况 Performance](#性能情况)
-2. [所需环境 Environment](#所需环境)
-3. [注意事项 Attention](#注意事项)
-4. [文件下载 Download](#文件下载)
-5. [预测步骤 How2predict](#预测步骤)
-6. [训练步骤 How2train](#训练步骤)
-7. [参考资料 Reference](#Reference)
+1. [仓库更新 Top News](#仓库更新)
+2. [相关仓库 Related code](#相关仓库)
+3. [性能情况 Performance](#性能情况)
+4. [所需环境 Environment](#所需环境)
+5. [注意事项 Attention](#注意事项)
+6. [文件下载 Download](#文件下载)
+7. [预测步骤 How2predict](#预测步骤)
+8. [训练步骤 How2train](#训练步骤)
+9. [参考资料 Reference](#Reference)
+
+## Top News
+**`2022-03`**:**进行了大幅度的更新，支持step、cos学习率下降法、支持adam、sgd优化器选择、支持学习率根据batch_size自适应调整。**  
+BiliBili视频中的原仓库地址为：https://github.com/bubbliiiing/facenet-pytorch/tree/bilibili
+
+**`2021-02`**:**创建仓库，支持模型训练，大量的注释，多个可调整参数，lfw数据集评估等。**  
+
+## 相关仓库
+| 模型 | 路径 |
+| :----- | :----- |
+facenet | https://github.com/bubbliiiing/facenet-pytorch
+arcface | https://github.com/bubbliiiing/arcface-pytorch
 
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | accuracy |
