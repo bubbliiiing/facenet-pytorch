@@ -35,10 +35,10 @@ pytorch==1.2.0
 
 ## 文件下载
 已经训练好的facenet_mobilenet.pth和facenet_inception_resnetv1.pth可以在百度网盘下载。    
-链接: https://pan.baidu.com/s/1ER7Ok6mTGh_1R36YTlErbw 提取码: rm69    
+链接: https://pan.baidu.com/s/1K20hyxU_UgSej1eZWih0Ag 提取码:anv6
 
 训练用的CASIA-WebFaces数据集以及评估用的LFW数据集可以在百度网盘下载。    
-链接: https://pan.baidu.com/s/1fhiHlylAFVoR43yfDbi4Ag 提取码: gkch    
+链接: https://pan.baidu.com/s/1qMxFR8H_ih0xmY-rKgRejw 提取码: bcrq    
 
 ## 预测步骤
 ### a、使用预训练权重
