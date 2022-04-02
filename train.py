@@ -55,10 +55,22 @@ if __name__ == "__main__":
     #----------------------------------------------------------------------------------------------------------------------------#
     pretrained      = False
 
-    #------------------------------------------------------#
+    #----------------------------------------------------------------------------------------------------------------------------#
     #   显存不足与数据集大小无关，提示显存不足请调小batch_size。
-    #   受到BatchNorm层影响，batch_size不能为1。
-    #------------------------------------------------------#
+    #   受到BatchNorm层影响，不能为1。
+    #
+    #   在此提供若干参数设置建议，各位训练者根据自己的需求进行灵活调整：
+    #   （一）从预训练权重开始训练：
+    #       Adam：
+    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 100，optimizer_type = 'adam'，Init_lr = 1e-3，weight_decay = 0。
+    #       SGD：
+    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 100，optimizer_type = 'sgd'，Init_lr = 1e-2，weight_decay = 5e-4。
+    #       其中：UnFreeze_Epoch可以在100-300之间调整。
+    #   （二）batch_size的设置：
+    #       在显卡能够接受的范围内，以大为好。显存不足与数据集大小无关，提示显存不足（OOM或者CUDA out of memory）请调小batch_size。
+    #       受到BatchNorm层影响，batch_size最小为2，不能为1。
+    #       正常情况下Freeze_batch_size建议为Unfreeze_batch_size的1-2倍。不建议设置的差距过大，因为关系到学习率的自动调整。
+    #----------------------------------------------------------------------------------------------------------------------------#
     #------------------------------------------------------#
     #   训练参数
     #   Init_Epoch      模型当前开始的训练世代
@@ -78,7 +90,7 @@ if __name__ == "__main__":
     #   Init_lr         模型的最大学习率
     #   Min_lr          模型的最小学习率，默认为最大学习率的0.01
     #------------------------------------------------------------------#
-    Init_lr             = 1e-2
+    Init_lr             = 1e-3
     Min_lr              = Init_lr * 0.01
     #------------------------------------------------------------------#
     #   optimizer_type  使用到的优化器种类，可选的有adam、sgd
@@ -88,9 +100,9 @@ if __name__ == "__main__":
     #   weight_decay    权值衰减，可防止过拟合
     #                   adam会导致weight_decay错误，使用adam时建议设置为0。
     #------------------------------------------------------------------#
-    optimizer_type      = "sgd"
+    optimizer_type      = "adam"
     momentum            = 0.9
-    weight_decay        = 5e-4
+    weight_decay        = 0
     #------------------------------------------------------------------#
     #   lr_decay_type   使用到的学习率下降方式，可选的有step、cos
     #------------------------------------------------------------------#
@@ -167,24 +179,26 @@ if __name__ == "__main__":
         if batch_size % 3 != 0:
             raise ValueError("Batch_size must be the multiple of 3.")
         #-------------------------------------------------------------------#
-        #   判断当前batch_size与64的差别，自适应调整学习率
+        #   判断当前batch_size，自适应调整学习率
         #-------------------------------------------------------------------#
-        nbs     = 64
-        Init_lr = max(batch_size / nbs * Init_lr, 3e-4)
-        Min_lr  = max(batch_size / nbs * Min_lr, 3e-6)
+        nbs             = 64
+        lr_limit_max    = 1e-3 if optimizer_type == 'adam' else 5e-2
+        lr_limit_min    = 3e-4 if optimizer_type == 'adam' else 5e-4
+        Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
+        Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
 
         #---------------------------------------#
         #   根据optimizer_type选择优化器
         #---------------------------------------#
         optimizer = {
-            'adam'  : optim.Adam(model.parameters(), Init_lr, betas = (momentum, 0.999), weight_decay = weight_decay),
-            'sgd'   : optim.SGD(model.parameters(), Init_lr, momentum=momentum, nesterov=True, weight_decay = weight_decay)
+            'adam'  : optim.Adam(model.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay),
+            'sgd'   : optim.SGD(model.parameters(), Init_lr_fit, momentum=momentum, nesterov=True, weight_decay = weight_decay)
         }[optimizer_type]
 
         #---------------------------------------#
         #   获得学习率下降的公式
         #---------------------------------------#
-        lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr, Min_lr, Epoch)
+        lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, Epoch)
         
         #---------------------------------------#
         #   判断每一个世代的长度
