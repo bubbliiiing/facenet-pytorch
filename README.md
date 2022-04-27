@@ -23,6 +23,8 @@ BiliBili视频中的原仓库地址为：https://github.com/bubbliiiing/facenet-
 | :----- | :----- |
 facenet | https://github.com/bubbliiiing/facenet-pytorch
 arcface | https://github.com/bubbliiiing/arcface-pytorch
+retinaface | https://github.com/bubbliiiing/retinaface-pytorch
+facenet + retinaface | https://github.com/bubbliiiing/facenet-retinaface-pytorch
 
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | accuracy |
