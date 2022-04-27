@@ -3,6 +3,7 @@ import os
 import random
 
 import numpy as np
+import torch
 import torchvision.datasets as datasets
 from PIL import Image
 from torch.utils.data.dataset import Dataset
@@ -139,6 +140,9 @@ def dataset_collate(batch):
     labels2 = np.array(labels)[:, 1]
     labels3 = np.array(labels)[:, 2]
     labels = np.concatenate([labels1, labels2, labels3], 0)
+    
+    images  = torch.from_numpy(np.array(images)).type(torch.FloatTensor)
+    labels  = torch.from_numpy(np.array(labels)).long()
     return images, labels
 
 class LFWDataset(datasets.ImageFolder):

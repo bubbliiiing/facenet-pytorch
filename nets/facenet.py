@@ -67,8 +67,8 @@ class Facenet(nn.Module):
         if mode == "train":
             self.classifier = nn.Linear(embedding_size, num_classes)
 
-    def forward(self, x, mode = "extractor"):
-        if mode == 'extractor':
+    def forward(self, x, mode = "predict"):
+        if mode == 'predict':
             x = self.backbone(x)
             x = self.avg(x)
             x = x.view(x.size(0), -1)
@@ -77,20 +77,16 @@ class Facenet(nn.Module):
             x = self.last_bn(x)
             x = F.normalize(x, p=2, dim=1)
             return x
-        elif mode == "train_extractor":
-            x = self.backbone(x)
-            x = self.avg(x)
-            x = x.view(x.size(0), -1)
-            x = self.Dropout(x)
-            x = self.Bottleneck(x)
-            before_normalize = self.last_bn(x)
-            x = F.normalize(before_normalize, p=2, dim=1)
-            return before_normalize, x
-        elif mode == "train_head":
-            x = self.classifier(x)
-            return x
-        else:
-            raise ValueError('mode should in extractor, head')
+        x = self.backbone(x)
+        x = self.avg(x)
+        x = x.view(x.size(0), -1)
+        x = self.Dropout(x)
+        x = self.Bottleneck(x)
+        before_normalize = self.last_bn(x)
+        
+        x = F.normalize(before_normalize, p=2, dim=1)
+        cls = self.classifier(before_normalize)
+        return x, cls
 
     def forward_feature(self, x):
         x = self.backbone(x)
