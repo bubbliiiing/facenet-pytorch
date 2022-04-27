@@ -53,7 +53,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
             #----------------------#
             #   反向传播
             #----------------------#
-            scaler.scale(loss).backward()
+            scaler.scale(_loss).backward()
             scaler.step(optimizer)
             scaler.update()  
 
