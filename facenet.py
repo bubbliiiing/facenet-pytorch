@@ -4,7 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from nets.facenet import Facenet as facenet
-from utils.utils import preprocess_input, resize_image
+from utils.utils import preprocess_input, resize_image, show_config
 
 
 #--------------------------------------------#
@@ -54,6 +54,8 @@ class Facenet(object):
             setattr(self, name, value)
 
         self.generate()
+        
+        show_config(**self._defaults)
         
     def generate(self):
         #---------------------------------------------------#
