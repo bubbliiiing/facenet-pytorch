@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import numpy as np
 import torch
@@ -12,9 +13,9 @@ from nets.facenet_training import (get_lr_scheduler, set_optimizer_lr,
                                    triplet_loss, weights_init)
 from utils.callback import LossHistory
 from utils.dataloader import FacenetDataset, LFWDataset, dataset_collate
-from utils.utils import get_num_classes, show_config
+from utils.utils import (get_num_classes, seed_everything, show_config,
+                         worker_init_fn)
 from utils.utils_fit import fit_one_epoch
-
 
 if __name__ == "__main__":
     #-------------------------------#
@@ -22,6 +23,11 @@ if __name__ == "__main__":
     #   没有GPU可以设置成False
     #-------------------------------#
     Cuda            = True
+    #----------------------------------------------#
+    #   Seed    用于固定随机种子
+    #           使得每次独立训练都可以获得一样的结果
+    #----------------------------------------------#
+    seed            = 11
     #---------------------------------------------------------------------#
     #   distributed     用于指定是否使用单机多卡分布式运行
     #                   终端指令仅支持Ubuntu。CUDA_VISIBLE_DEVICES用于在Ubuntu下指定显卡。
@@ -155,6 +161,7 @@ if __name__ == "__main__":
     lfw_dir_path    = "lfw"
     lfw_pairs_path  = "model_data/lfw_pair.txt"
 
+    seed_everything(seed)
     #------------------------------------------------------#
     #   设置用到的显卡
     #------------------------------------------------------#
@@ -323,9 +330,11 @@ if __name__ == "__main__":
             shuffle         = True
         
         gen             = DataLoader(train_dataset, shuffle=shuffle, batch_size=batch_size//3, num_workers=num_workers, pin_memory=True,
-                                drop_last=True, collate_fn=dataset_collate, sampler=train_sampler)
+                                drop_last=True, collate_fn=dataset_collate, sampler=train_sampler, 
+                                worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
         gen_val         = DataLoader(val_dataset, shuffle=shuffle, batch_size=batch_size//3, num_workers=num_workers, pin_memory=True,
-                                drop_last=True, collate_fn=dataset_collate, sampler=val_sampler)
+                                drop_last=True, collate_fn=dataset_collate, sampler=val_sampler, 
+                                worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
 
         for epoch in range(Init_Epoch, Epoch):
             if distributed:
