@@ -120,7 +120,10 @@ class FacenetDataset(Dataset):
             path_split = path.split(";")
             self.paths.append(path_split[1].split()[0])
             self.labels.append(int(path_split[0]))
-        self.paths  = np.array(self.paths,dtype=np.object)
+        try:
+            self.paths  = np.array(self.paths, dtype=np.object)
+        except:
+            self.paths  = np.array(self.paths, dtype=np.object_)
         self.labels = np.array(self.labels)
         
 # DataLoader中collate_fn使用
