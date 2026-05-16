@@ -95,6 +95,11 @@ def calculate_val_far(threshold, dist, actual_issame):
     far = float(false_accept) / float(n_diff)
     return val, far
 
+def calculate_lfw_distance(out_a, out_p):
+    out_a = out_a.reshape(out_a.size(0), -1)
+    out_p = out_p.reshape(out_p.size(0), -1)
+    return torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
+
 def test(test_loader, model, png_save_path, log_interval, batch_size, cuda):
     labels, distances = [], []
     pbar = tqdm(enumerate(test_loader))
@@ -111,7 +116,7 @@ def test(test_loader, model, png_save_path, log_interval, batch_size, cuda):
             #   获得预测结果的距离
             #--------------------------------------#
             out_a, out_p        = model(data_a), model(data_p)
-            dists               = torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
+            dists               = calculate_lfw_distance(out_a, out_p)
 
         #--------------------------------------#
         #   将结果添加进列表中

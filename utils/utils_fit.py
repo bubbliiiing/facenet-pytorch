@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from utils.utils import get_lr
-from utils.utils_metrics import evaluate
+from utils.utils_metrics import calculate_lfw_distance, evaluate
 
 
 def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, test_loader, Batch_size, lfw_eval_flag, fp16, scaler, save_period, save_dir, local_rank):
@@ -115,7 +115,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer, epoch, epoc
                 if cuda:
                     data_a, data_p = data_a.cuda(local_rank), data_p.cuda(local_rank)
                 out_a, out_p = model_train(data_a), model_train(data_p)
-                dists = torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
+                dists = calculate_lfw_distance(out_a, out_p)
             distances.append(dists.data.cpu().numpy())
             labels.append(label.data.cpu().numpy())
         
